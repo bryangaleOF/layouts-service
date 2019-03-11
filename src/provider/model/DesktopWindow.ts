@@ -803,6 +803,12 @@ export class DesktopWindow implements DesktopEntity {
     }
 
     private async updateState(delta: Partial<EntityState>, origin: ActionOrigin): Promise<void> {
+
+        let debugging = false;
+        if (this.identity.name.startsWith('TABSET-')) {
+            debugging = true;
+        }
+
         const actions: Promise<void>[] = [];
 
         if (origin !== ActionOrigin.APPLICATION) {
@@ -856,9 +862,11 @@ export class DesktopWindow implements DesktopEntity {
         Object.assign(this._currentState, delta);
 
         // Apply changes to the window (unless we're reacting to an external change that has already happened)
+
+        const {center, halfSize, state, hidden, resizeConstraints, ...options} = delta;
+
         if (origin !== ActionOrigin.APPLICATION) {
             const window = this._window;
-            const {center, halfSize, state, hidden, resizeConstraints, ...options} = delta;
             const optionsToChange: (keyof EntityState)[] = Object.keys(options) as (keyof EntityState)[];
 
             // Apply visibility
@@ -895,7 +903,12 @@ export class DesktopWindow implements DesktopEntity {
                 }
 
                 const bounds = {left: newCenter.x - newHalfSize.x, top: newCenter.y - newHalfSize.y, width: newHalfSize.x * 2, height: newHalfSize.y * 2};
-                actions.push(window.setBounds(bounds));
+                
+                //if (bounds.width !== state.halfSize.x * 2 || bounds.height !== state.halfSize.y * 2) {
+                    actions.push(window.resizeTo(bounds.width, bounds.height, 'top-left'));
+
+                    if (debugging){ console.log('**** resizing to ', bounds.width, bounds.height, Date.now());}
+                //}
             }
 
             if (resizeConstraints) {
@@ -933,6 +946,21 @@ export class DesktopWindow implements DesktopEntity {
 
             // Track these changes
             return this.addPendingActions('updateState ' + this._id + ' ' + JSON.stringify(delta), actions);
+        } else {
+
+            if (center || halfSize) {
+                const state: EntityState = this._currentState;
+                let newCenter = center || state.center, newHalfSize = halfSize || state.halfSize;
+
+                if (isWin10() && state.frame) {
+                    newCenter = {x: newCenter.x, y: newCenter.y + 3.5};
+                    newHalfSize = {x: newHalfSize.x + 7, y: newHalfSize.y + 3.5};
+                }
+
+                const bounds = {left: newCenter.x - newHalfSize.x, top: newCenter.y - newHalfSize.y, width: newHalfSize.x * 2, height: newHalfSize.y * 2};
+                
+                if (debugging) { console.log('**** resized to ', bounds.width, bounds.height, Date.now())};
+            }
         }
     }
 

@@ -83,8 +83,8 @@ export class DesktopTabGroup implements DesktopEntity {
         this._model = model;
         this._activeTab = null;
         this._window = new DesktopWindow(model, windowSpec);
-        this._window.onTransform.add((window: DesktopWindow, type: Mask<eTransformType>) => this.updateBounds());
-        this._window.onModified.add(async (window: DesktopWindow) => await this.onTabstripModified());
+        this._window.onModified.add((window: DesktopWindow) => this.updateBounds());
+        this._window.onTransform.add(async (window: DesktopWindow, type: Mask<eTransformType>) => await this.onTabstripModified());
         this._window.onCommit.add((window: DesktopWindow, type: Mask<eTransformType>) => this.updateBounds());
         this._window.onTeardown.add((window: DesktopWindow) => this.onTabGroupTeardown());
         this._groupState = {...this._window.currentState};
@@ -286,11 +286,10 @@ export class DesktopTabGroup implements DesktopEntity {
                     if (preservePositionUnderMouse) {
                         await this.adjustBoundsToUnderMouse(tabstripBounds, tabBounds);
                     }
-
+                    
                     await this._window.applyProperties(tabstripBounds);
-                    await this.activeTab.applyProperties(tabBounds);
 
-                    console.log(Date.now(), tabstripBounds.halfSize.x * 2);
+                    await this.activeTab.applyProperties(tabBounds);
                 }
             } else {
                 await Promise.all(this._tabs.map(tab => tab.applyProperties({state: 'normal'})));
