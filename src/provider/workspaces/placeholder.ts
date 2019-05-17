@@ -161,7 +161,9 @@ export const positionWindow = async (win: WorkspaceWindow, replacingPlaceholder:
             return;
         }
 
+        console.log('*** begin positionWindow()>leaveGroup()', `${win.uuid}/${win.name!}`);
         await ofWin.leaveGroup();
+        console.log('*** end positionWindow()>leaveGroup()', `${win.uuid}/${win.name!}`);
 
         if (!isShowing) {
             await ofWin.hide();

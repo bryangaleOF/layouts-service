@@ -436,7 +436,9 @@ export class DesktopWindow implements DesktopEntity {
             }));
 
             // Undock the window
+            console.log('*** begin teardown()>leaveGroup()', this.id);
             this._window.leaveGroup();
+            console.log('*** end teardown()>leaveGroup()', this.id);
         }
         await this.onTeardown.emit(this);
         DesktopWindow.onDestroyed.emit(this);
@@ -780,7 +782,9 @@ export class DesktopWindow implements DesktopEntity {
                             return;
                         }
 
+                        console.log('*** begin snap()>mergeGroup()', this.id, target.id);
                         await this._window.mergeGroups(target._window).catch((error) => this.checkClose(error));
+                        console.log('*** end snap()>mergeGroup()', this.id, target.id);
 
                         // Re-fetch window list in case it has changed during sync
                         const windows: DesktopWindow[] = this._snapGroup.windows as DesktopWindow[];
@@ -820,7 +824,8 @@ export class DesktopWindow implements DesktopEntity {
     private unsnap(): Promise<void> {
         // TODO: Wrap with 'addPendingActions'?..
         if (this.isReady) {
-            return this._window.leaveGroup();
+            console.log('*** begin unsnap()>leaveGroup()', this.id);
+            return this._window.leaveGroup().then(r => console.log('*** end unsnap()>leaveGroup()', this.id));
         } else {
             return Promise.resolve();
         }
@@ -1189,8 +1194,12 @@ export class DesktopWindow implements DesktopEntity {
         // Each group operation will raise an event from every window involved. To avoid handling the same event twice, we will only handle the event on the
         // window that triggered the event
         if (event.name !== event.sourceWindowName || event.uuid !== event.sourceWindowAppUuid) {
+            console.log('*** handleGroupChanged discarding', this._id, event.reason);
+
             return;
         }
+
+        console.log('*** handleGroupChanged', this._id, event.reason);
 
         await this.sync();
 
@@ -1215,6 +1224,7 @@ export class DesktopWindow implements DesktopEntity {
             case 'leave': {
                 const modifiedSourceGroup = event.sourceGroup.concat({appUuid: this._identity.uuid, windowName: this._identity.name});
                 if (this._snapGroup.length > 1 && compareSnapAndEventWindowArrays(this._snapGroup.windows, modifiedSourceGroup)) {
+                    console.log('*** handleGroupChanged action', this._id, event.reason);
                     return this.setSnapGroup(new DesktopSnapGroup());
                 } else {
                     return Promise.resolve();
@@ -1222,12 +1232,14 @@ export class DesktopWindow implements DesktopEntity {
             }
             case 'join':
                 if (targetWindow && targetGroup) {
+                    console.log('*** handleGroupChanged action', this._id, event.reason);
                     return compareSnapAndEventWindowArrays(this._snapGroup.windows, event.targetGroup) ? Promise.resolve() : this.addToSnapGroup(targetGroup);
                 }
                 break;
 
             case 'merge':
                 if (targetWindow && targetGroup) {
+                    console.log('*** handleGroupChanged action', this._id, event.reason);
                     this._snapGroup.windows.forEach((window: DesktopEntity) => {  // TODO (SERVICE-200): Test snap groups that contain tabs
                         // Merge events are never triggered inside the service, so we do not need the same guards as join/leave
                         return window.setSnapGroup(targetGroup);
