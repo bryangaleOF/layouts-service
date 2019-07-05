@@ -1014,6 +1014,7 @@ export class DesktopWindow implements DesktopEntity {
             });
         });
         this.registerListener('shown', () => this.updateState({hidden: false}, ActionOrigin.APPLICATION));
+        this.registerListener('options-changed', this.handleOptionsChanged.bind(this));
     }
 
     private registerListener<K extends OpenFinWindowEvent>(eventType: K, handler: (event: fin.OpenFinWindowEventMap[K]) => void) {
@@ -1249,6 +1250,29 @@ export class DesktopWindow implements DesktopEntity {
                 eventWindows.map(w => ({uuid: w.appUuid, name: w.windowName}))
                     .sort((a, b) => a.uuid === b.uuid ? a.name.localeCompare(b.name) : a.uuid.localeCompare(b.uuid))
             );
+        }
+    }
+
+    private async handleOptionsChanged(event: fin.WindowOptionsChangedEvent): Promise<void> {
+        if (event.diff.resizable) {
+            const options = await this._window.getOptions();
+
+            const resizeConstraints: Point<ResizeConstraint> = {
+                x: {
+                    resizableMin: !!options.resizable && (options.resizeRegion.sides.left !== false),
+                    resizableMax: !!options.resizable && (options.resizeRegion.sides.right !== false),
+                    minSize: options.minWidth || 0,
+                    maxSize: options.maxWidth && options.maxWidth > 0 ? options.maxWidth : Number.MAX_SAFE_INTEGER
+                },
+                y: {
+                    resizableMin: !!options.resizable && (options.resizeRegion.sides.top !== false),
+                    resizableMax: !!options.resizable && (options.resizeRegion.sides.bottom !== false),
+                    minSize: options.minHeight || 0,
+                    maxSize: options.maxHeight && options.maxHeight > 0 ? options.maxHeight : Number.MAX_SAFE_INTEGER
+                }
+            };
+
+            await this.updateState({resizeConstraints}, ActionOrigin.APPLICATION);
         }
     }
 

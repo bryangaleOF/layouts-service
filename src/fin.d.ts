@@ -1454,6 +1454,7 @@ declare namespace fin {
         'restored': WindowBaseEvent;
         'show-requested': WindowBaseEvent;
         'shown': WindowBaseEvent;
+        'options-changed': WindowOptionsChangedEvent;
     }
 
     interface WindowBaseEvent {
@@ -1517,6 +1518,17 @@ declare namespace fin {
         processUuid: string;
         type: 'external-process-started';
     }
+
+    export interface WindowOptionsChangedEvent extends WindowBaseEvent {
+        diff: WindowOptionDiff;
+    }
+
+    type WindowOptionDiff = {
+        [key in keyof WindowOptions]: {
+            oldVal: WindowOptions[key];
+            newVal: WindowOptions[key];
+        };
+    };
 
     interface WindowExternalProcessExited extends WindowBaseEvent {
         /**
